@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useRef } from "react";
 import { CheckIcon } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
+import { downloadFile } from "@/lib/utils";
 
 enum UploadStatus {
   IDLE,
@@ -30,6 +31,7 @@ export default function Component() {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>(
     UploadStatus.IDLE,
   );
+  const [output, setOutput] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [thumbnail, setThumbnail] = useState<string>();
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,11 +55,17 @@ export default function Component() {
       setUploadStatus(UploadStatus.LOADING);
       const formData = new FormData();
       formData.append("video", file.current);
-      const response = await fetch(`/api/upload?inputName=${fileName}`, {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        `http://localhost:5000/change-codec?inputfile=${fileName}`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
       if (response.ok) {
+        const { data } = await response.json();
+        console.log(data);
+        setOutput(data["output_path"]);
         alert("Video uploaded successfully");
         setUploadStatus(UploadStatus.COMPRESSED);
       } else {
@@ -72,16 +80,16 @@ export default function Component() {
 
   const handleDownload = async () => {
     setUploadStatus(UploadStatus.LOADING);
-    const response = await fetch(`/api/download?inputName=${fileName}`, {
-      method: "POST",
-    });
-    if (response.ok) {
-      alert("Download file successfully");
-      setUploadStatus(UploadStatus.IDLE);
-    } else {
-      alert("Failed to download video");
-      setUploadStatus(UploadStatus.COMPRESSED);
-    }
+    await downloadFile(`http://localhost:5000/download?file=${output}`, output)
+      .then(() => {
+        alert("Download file successfully");
+        setUploadStatus(UploadStatus.IDLE);
+      })
+      .catch((e) => {
+        alert("Failed to download video");
+        console.error(e);
+        setUploadStatus(UploadStatus.COMPRESSED);
+      });
   };
 
   const handleButton = async () => {
