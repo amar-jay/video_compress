@@ -1,14 +1,12 @@
 ---
 import '@/globals.css'
-import Layout from '../layouts/Layout.astro';
-import Card from '../components/Card.astro';
-import DragDropVideo from '../components/drag-drop-video.tsx';
-import {Button} from '../components/ui/button.tsx';
+import DragDropVideo from '@/components/drag-drop-video.tsx';
+import Layout from '@/layouts/Layout.astro';
 ---
 
 <Layout title="Welcome to Astro.">
   <main >
     <h1 class="text-center text-3xl font-medium mb-10">Video Compress</h1>
-    <DragDropVideo/>
+    <DragDropVideo client:load/>
   </main>
 </Layout>
