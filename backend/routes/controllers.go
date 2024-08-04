@@ -115,8 +115,14 @@ func (r *routes) ChangeVideoFormat(ctx *gin.Context) {
 		return
 	}
 
+	//determine output file size
+	outFileInfo, err := os.Stat(filepath.Join(r.mainDir, outPath))
+	if err != nil {
+		HttpResponse(ctx, r.log, http.StatusConflict, fmt.Errorf("could not get file info: %w", err), nil)
+	}
+
 	r.log.Println("Video format changed successfully")
-	HttpResponse(ctx, r.log, http.StatusOK, nil, map[string]string{"input_path": inpPath, "output_path": outPath, "message": "Video format changed successfully"})
+	HttpResponse(ctx, r.log, http.StatusOK, nil, map[string]any{"input_path": inpPath, "output_path": outPath, "output_size": outFileInfo.Size(), "message": "Video format changed successfully"})
 	r.log.Println("Response sent")
 	return
 }

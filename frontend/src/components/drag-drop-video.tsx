@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useState, useRef } from "react";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, LoaderCircleIcon } from "lucide-react";
+
 import { Skeleton } from "./ui/skeleton";
 import { downloadFile, formatFileSize } from "@/lib/utils";
+import { useVideoThumbnail } from "@/lib/use-video-thumbnail";
 
 enum UploadStatus {
   IDLE,
@@ -33,7 +35,8 @@ export default function Component() {
   );
   const [output, setOutput] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
-  const [thumbnail, setThumbnail] = useState<string>();
+  const { thumbnail } = useVideoThumbnail(file.current!);
+
   const [times, setTimes] = useState<number>(); // set magnitude of reduction in size
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const _file = e.target?.files?.[0];
@@ -68,7 +71,7 @@ export default function Component() {
           const { data } = await response.json();
           console.log(data);
           setOutput(data["output_path"]);
-          if (data["output_size"] && typeof data["output_size"] == "number") {
+          if (data["output_size"]) {
             setTimes(data["output_size"] / file.current.size);
           } else {
             alert(
@@ -126,7 +129,9 @@ export default function Component() {
       <CardHeader>
         <CardTitle>Upload a Video</CardTitle>
         <CardDescription>
-          Compress video size with no compromise on quality
+          {uploadStatus === UploadStatus.LOADING
+            ? "Wait a moment. Might take some time to compress the video"
+            : "Compress video size with no compromise on quality"}
         </CardDescription>
       </CardHeader>
       {uploadStatus === UploadStatus.COMPRESSED && (
@@ -136,8 +141,13 @@ export default function Component() {
           <CheckIcon className="w-10 h-10 px-1 py-1 text-green-500 bg-green-100 rounded-full" />
           <div>
             <p className="text-xl">
-              <strong className="text-primary"> {times}x </strong> smaller in
-              size{" "}
+              {times && (
+                <strong className="text-primary">
+                  {" "}
+                  {(times * 100).toFixed(2)}%{" "}
+                </strong>
+              )}{" "}
+              smaller in size{" "}
             </p>
             <p className="text-muted-foreground">
               Size compresssion completed successfully.{" "}
@@ -145,19 +155,20 @@ export default function Component() {
           </div>
         </CardContent>
       )}
-      {uploadStatus === UploadStatus.LOADING && (
-        <CardContent className="grid grid-cols-[120px_1fr] gap-4">
-          <div className="relative flex flex-col items-center justify-center gap-2 border-2 border-dashed border-muted rounded-md p-8 transition-colors hover:border-primary hover:bg-muted aspect-square">
-            <Skeleton className="h-full w-full rounded-md" />
-          </div>
-          <div className="flex flex-col justify-center">
-            <div>
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-3 w-32 mt-2" />
+      {!uploadStatus ||
+        (uploadStatus === UploadStatus.LOADING && (
+          <CardContent className="grid grid-cols-[120px_1fr] gap-4">
+            <div className="relative flex flex-col items-center justify-center gap-2 border-2 border-dashed border-muted rounded-md p-8 transition-colors hover:border-primary hover:bg-muted aspect-square">
+              <Skeleton className="h-full w-full rounded-md" />
             </div>
-          </div>
-        </CardContent>
-      )}
+            <div className="flex flex-col justify-center">
+              <div>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32 mt-2" />
+              </div>
+            </div>
+          </CardContent>
+        ))}
       {uploadStatus === UploadStatus.UPLOADED && (
         <UploadedFileCardContent
           fileName={fileName}
@@ -187,7 +198,11 @@ export default function Component() {
           {
             {
               [UploadStatus.IDLE]: "Upload Video",
-              [UploadStatus.LOADING]: "Uploading...",
+              [UploadStatus.LOADING]: (
+                <div className="w-16 flex flex-row justify-center">
+                  <LoaderCircleIcon className="w-5 h-5 animate-spin" />
+                </div>
+              ),
               [UploadStatus.UPLOADED]: "Compress Video",
               [UploadStatus.COMPRESSED]: "Download Video",
             }[uploadStatus]
