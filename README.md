@@ -7,14 +7,13 @@ A simple web app to convert videos from H.264 to H.265 encoding, significantly r
 H.265 (HEVC) is the successor to H.264 (AVC). It offers better compression, allowing for smaller file sizes or higher quality at the same bitrate. This project uses FFmpeg to convert videos from H.264 to H.265.
 
 ## Quick Start
-Run in both servers in different windows
 
 ### Backend
 
 ```bash
-cd video-compress/backend
-docker build -t video-compress .
-docker run -p 5000:5000 video-compress
+cd video_compress/backend
+docker build -t video_compress .
+docker run -p 5000:5000 video_compress
 ```
 
 ### Frontend
@@ -24,7 +23,7 @@ docker run -p 5000:5000 video-compress
 # Install Bun (for macOS, Linux, and WSL)
 curl -fsSL https://bun.sh/install | bash
 
-cd video-compress/frontend
+cd video_compress/frontend
 bun install
 bun run build
 bun run preview
