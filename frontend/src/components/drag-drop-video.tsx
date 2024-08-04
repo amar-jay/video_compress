@@ -72,7 +72,7 @@ export default function Component() {
           console.log(data);
           setOutput(data["output_path"]);
           if (data["output_size"]) {
-            setTimes(data["output_size"] / file.current.size);
+            setTimes(1 - data["output_size"] / file.current.size);
           } else {
             alert(
               "output_size isn't a number, type: " +
