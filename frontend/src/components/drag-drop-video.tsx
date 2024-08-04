@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useRef } from "react";
 import { CheckIcon } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
-import { downloadFile } from "@/lib/utils";
+import { downloadFile, formatFileSize } from "@/lib/utils";
 
 enum UploadStatus {
   IDLE,
@@ -34,6 +34,7 @@ export default function Component() {
   const [output, setOutput] = useState<string>("");
   const [fileName, setFileName] = useState<string>("");
   const [thumbnail, setThumbnail] = useState<string>();
+  const [times, setTimes] = useState<number>(); // set magnitude of reduction in size
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const _file = e.target?.files?.[0];
     if (_file && _file.type.startsWith("video/")) {
@@ -55,22 +56,35 @@ export default function Component() {
       setUploadStatus(UploadStatus.LOADING);
       const formData = new FormData();
       formData.append("video", file.current);
-      const response = await fetch(
-        `http://localhost:5000/change-codec?inputfile=${fileName}`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
-      if (response.ok) {
-        const { data } = await response.json();
-        console.log(data);
-        setOutput(data["output_path"]);
-        alert("Video uploaded successfully");
-        setUploadStatus(UploadStatus.COMPRESSED);
-      } else {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/change-codec?inputfile=${fileName}`,
+          {
+            method: "POST",
+            body: formData,
+          },
+        );
+        if (response.ok) {
+          const { data } = await response.json();
+          console.log(data);
+          setOutput(data["output_path"]);
+          if (data["output_size"] && typeof data["output_size"] == "number") {
+            setTimes(data["output_size"] / file.current.size);
+          } else {
+            alert(
+              "output_size isn't a number, type: " +
+                typeof data?.["output_size"] || "unknown",
+            );
+          }
+          alert("Video uploaded successfully");
+          setUploadStatus(UploadStatus.COMPRESSED);
+        }
+      } catch (e) {
         alert("Failed to upload video");
-        setUploadStatus(UploadStatus.UPLOADED);
+        console.error(e);
+        file.current = undefined;
+        setFileName("");
+        setUploadStatus(UploadStatus.IDLE);
       }
     } else {
       setUploadStatus(UploadStatus.IDLE);
@@ -83,6 +97,8 @@ export default function Component() {
     await downloadFile(`http://localhost:5000/download?file=${output}`, output)
       .then(() => {
         alert("Download file successfully");
+        file.current = undefined;
+        setFileName("");
         setUploadStatus(UploadStatus.IDLE);
       })
       .catch((e) => {
@@ -117,10 +133,16 @@ export default function Component() {
         <CardContent className="flex items-center gap-2 text-success">
           {/**
            */}
-          <CheckIcon className="w-8 h-8 px-1 py-1 text-muted-foreground bg-muted rounded-full" />
-          <span className="text-muted-foreground">
-            Video compressed successfully
-          </span>
+          <CheckIcon className="w-10 h-10 px-1 py-1 text-green-500 bg-green-100 rounded-full" />
+          <div>
+            <p className="text-xl">
+              <strong className="text-primary"> {times}x </strong> smaller in
+              size{" "}
+            </p>
+            <p className="text-muted-foreground">
+              Size compresssion completed successfully.{" "}
+            </p>
+          </div>
         </CardContent>
       )}
       {uploadStatus === UploadStatus.LOADING && (
@@ -137,7 +159,15 @@ export default function Component() {
         </CardContent>
       )}
       {uploadStatus === UploadStatus.UPLOADED && (
-        <UploadedFileCardContent fileName={fileName} thumbnail={thumbnail} />
+        <UploadedFileCardContent
+          fileName={fileName}
+          thumbnail={thumbnail}
+          fileSize={
+            !!file.current && file.current?.size > 0
+              ? formatFileSize(file.current.size)
+              : "unknown video file size"
+          }
+        />
       )}
 
       {uploadStatus === UploadStatus.IDLE && (
@@ -171,8 +201,10 @@ export default function Component() {
 function UploadedFileCardContent({
   fileName,
   thumbnail,
+  fileSize,
 }: {
   fileName: string;
+  fileSize: string;
   thumbnail: any;
 }) {
   return (
@@ -190,7 +222,7 @@ function UploadedFileCardContent({
       <div className="flex flex-col justify-center">
         <div>
           <div className="font-medium">{fileName || "unknown video name"}</div>
-          <div className="text-muted-foreground text-sm">Video to compress</div>
+          <div className="text-muted-foreground text-sm">{fileSize}</div>
         </div>
       </div>
     </CardContent>
